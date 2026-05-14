@@ -35,13 +35,21 @@ def to_image_html(w, step):
     b64 = base64.b64encode(buf.getvalue()).decode()
     return (
         f'<img src="data:image/png;base64,{b64}" '
-        f'style="width:100%;display:block;image-rendering:pixelated">'
-        f'<p style="text-align:center;color:#888;font-size:0.85em;margin-top:4px">'
-        f'Step: {step:,}</p>'
+        f'style="width:100%;display:block;image-rendering:pixelated;margin:4px 0 0 0">'
+        f'<div style="text-align:center;color:#888;font-size:0.85em;margin:2px 0 0 0">'
+        f'Step: {step:,}</div>'
     )
 
 # ---- UI ----
 st.title("Self-Organizing Map")
+
+# markdown コンテナ内の p タグのデフォルトマージンをリセット
+st.markdown("""
+<style>
+[data-testid="stMarkdownContainer"] p { margin: 0; }
+[data-testid="stMarkdownContainer"] div { margin: 0; }
+</style>
+""", unsafe_allow_html=True)
 
 # @st.fragment: フラグメント内だけ再描画されるのでページ全体が白くならない
 @st.fragment
@@ -82,17 +90,19 @@ def som_ui():
 
     status_slot.caption(f"累計ステップ: {st.session_state.current_step:,}")
 
-    # ---- 色ラベル＋画像を1つの markdown にまとめて隙間をなくす ----
+    # ---- 色ラベル＋画像を1つの div にまとめて隙間をなくす ----
     c = st.session_state.last_color
     r, g, b  = (int(v * 255) for v in c)
     hex_code = f"#{r:02x}{g:02x}{b:02x}"
     color_html = (
+        f'<div style="margin:0;font-size:0.9em">'
         f'最後の入力色: '
         f'<span style="font-family:monospace">{hex_code} &nbsp; '
         f'RGB({r:3d},{g:3d},{b:3d})</span> &nbsp;'
         f'<span style="display:inline-block;width:20px;height:20px;'
         f'background:{hex_code};border:1px solid #888;border-radius:3px;'
         f'vertical-align:middle"></span>'
+        f'</div>'
     )
     st.markdown(
         color_html + to_image_html(st.session_state.weight, st.session_state.current_step),
