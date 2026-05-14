@@ -56,12 +56,10 @@ def som_ui():
     run   = col_run.button("▶ 学習実行",  type="primary",   use_container_width=True)
     reset = col_reset.button("↺ リセット", use_container_width=True)
 
-    # ---- 常に同じ高さのスロットを確保（がたつき防止）----
-    _SPACER = '<div style="height:1.4rem"></div>'
-    progress_slot = st.empty()
-    progress_slot.markdown(_SPACER, unsafe_allow_html=True)
-
     # ---- ボタン処理（画像表示より前）----
+    # caption と progress を同じスロットで兼用することで余分な隙間を作らない
+    status_slot = st.empty()
+
     if reset:
         st.session_state.weight       = np.random.random([ROW, COL, 3])
         st.session_state.current_step = 0
@@ -79,13 +77,10 @@ def som_ui():
                 som_step(w, last_color)
                 st.session_state.current_step += 1
             done += batch
-            progress_slot.progress(done / steps,
-                                    text=f"{done:,} / {steps:,} ステップ")
+            status_slot.caption(f"学習中... {done:,} / {steps:,} ステップ")
         st.session_state.last_color = last_color
-        progress_slot.markdown(_SPACER, unsafe_allow_html=True)  # スペーサーに戻す
 
-    # ---- 状態表示 ----
-    st.caption(f"累計ステップ: {st.session_state.current_step:,}")
+    status_slot.caption(f"累計ステップ: {st.session_state.current_step:,}")
 
     c = st.session_state.last_color
     r, g, b  = (int(v * 255) for v in c)
