@@ -38,37 +38,48 @@ def render_color_and_image(w, step, last_color):
     r, g, b_  = (int(v * 255) for v in last_color)
     hex_code  = f"#{r:02x}{g:02x}{b_:02x}"
 
-    html = f"""
-    <div id="wrap" style="font-family:sans-serif;margin:0;padding:0">
-      <div style="font-size:13px;margin:0 0 4px 0;line-height:1.4">
-        最後の入力色:&nbsp;
-        <span style="font-family:monospace">{hex_code}&nbsp;&nbsp;
-          RGB({r:3d},{g:3d},{b_:3d})</span>
-        &nbsp;
-        <span style="display:inline-block;width:18px;height:18px;
-                     background:{hex_code};border:1px solid #888;
-                     border-radius:3px;vertical-align:middle"></span>
-      </div>
-      <img id="som" src="data:image/png;base64,{b64}"
-           style="width:100%;display:block;image-rendering:pixelated;margin:0">
-      <div style="text-align:center;color:#888;font-size:12px;margin:2px 0 0 0">
-        Step: {step:,}
-      </div>
-    </div>
-    <script>
-      // 画像読み込み後に実際の高さを Streamlit に通知して iframe を自動リサイズ
-      function sendHeight() {{
-        const h = document.getElementById('wrap').scrollHeight;
-        window.parent.postMessage({{type:'streamlit:setFrameHeight', height:h}}, '*');
-      }}
-      const img = document.getElementById('som');
-      if (img.complete) {{ sendHeight(); }}
-      else {{ img.addEventListener('load', sendHeight); }}
-      window.addEventListener('resize', sendHeight);
-    </script>
-    """
-    # 初期高さは大きめに確保しておき、JS が正確な値に上書きする
-    components.html(html, height=DISPLAY_SIZE + 100, scrolling=False)
+    html = f"""<!DOCTYPE html>
+<html><head>
+<style>
+  * {{ box-sizing: border-box; }}
+  html, body {{ margin: 0; padding: 0; background: transparent; }}
+</style>
+</head><body>
+<div id="wrap" style="font-family:sans-serif;">
+  <div style="font-size:13px;line-height:1.6;margin:0 0 4px 0;">
+    最後の入力色:&nbsp;
+    <span style="font-family:monospace">{hex_code}&nbsp;&nbsp;RGB({r:3d},{g:3d},{b_:3d})</span>
+    &nbsp;
+    <span style="display:inline-block;width:18px;height:18px;
+                 background:{hex_code};border:1px solid #888;
+                 border-radius:3px;vertical-align:middle;"></span>
+  </div>
+  <img id="img" src="data:image/png;base64,{b64}"
+       style="width:100%;display:block;image-rendering:pixelated;">
+  <div style="text-align:center;color:#888;font-size:12px;margin:2px 0 0 0;">
+    Step: {step:,}
+  </div>
+</div>
+<script>
+  function resize() {{
+    var h = document.getElementById('wrap').getBoundingClientRect().height;
+    window.parent.postMessage(
+      {{type: 'streamlit:setFrameHeight', height: Math.ceil(h) + 8}}, '*'
+    );
+  }}
+  var img = document.getElementById('img');
+  // base64 は即時ロードされる場合も onload が呼ばれない場合があるため両方対応
+  img.onload = function() {{ resize(); setTimeout(resize, 100); }};
+  if (img.complete && img.naturalWidth > 0) {{
+    resize();
+    setTimeout(resize, 100);
+  }}
+  window.addEventListener('resize', resize);
+</script>
+</body></html>"""
+
+    # 初期高さ: JS 補正前に切れないよう画像サイズより大きく設定
+    components.html(html, height=DISPLAY_SIZE * 3, scrolling=False)
 
 # ---- UI ----
 st.title("Self-Organizing Map")
