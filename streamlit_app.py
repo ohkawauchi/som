@@ -28,7 +28,7 @@ def som_step(weight, colorvec):
                 weight[ni, nj] += ALPHA * (colorvec - weight[ni, nj]) / (abs(i) + abs(j) + 1)
 
 def render_color_and_image(w, step, last_color):
-    """色ラベル＋画像を iframe (components.html) で描画 → Streamlit の CSS が干渉しない"""
+    """色ラベル＋画像を iframe で描画。JS で実際の高さを Streamlit に通知して切れを防ぐ"""
     arr = (np.clip(w, 0, 1) * 255).astype(np.uint8)
     pil = PILImage.fromarray(arr, "RGB").resize((DISPLAY_SIZE, DISPLAY_SIZE), PILImage.NEAREST)
     buf = io.BytesIO()
@@ -39,7 +39,7 @@ def render_color_and_image(w, step, last_color):
     hex_code  = f"#{r:02x}{g:02x}{b_:02x}"
 
     html = f"""
-    <div style="font-family:sans-serif;margin:0;padding:0">
+    <div id="wrap" style="font-family:sans-serif;margin:0;padding:0">
       <div style="font-size:13px;margin:0 0 4px 0;line-height:1.4">
         最後の入力色:&nbsp;
         <span style="font-family:monospace">{hex_code}&nbsp;&nbsp;
@@ -49,14 +49,26 @@ def render_color_and_image(w, step, last_color):
                      background:{hex_code};border:1px solid #888;
                      border-radius:3px;vertical-align:middle"></span>
       </div>
-      <img src="data:image/png;base64,{b64}"
+      <img id="som" src="data:image/png;base64,{b64}"
            style="width:100%;display:block;image-rendering:pixelated;margin:0">
       <div style="text-align:center;color:#888;font-size:12px;margin:2px 0 0 0">
         Step: {step:,}
       </div>
     </div>
+    <script>
+      // 画像読み込み後に実際の高さを Streamlit に通知して iframe を自動リサイズ
+      function sendHeight() {{
+        const h = document.getElementById('wrap').scrollHeight;
+        window.parent.postMessage({{type:'streamlit:setFrameHeight', height:h}}, '*');
+      }}
+      const img = document.getElementById('som');
+      if (img.complete) {{ sendHeight(); }}
+      else {{ img.addEventListener('load', sendHeight); }}
+      window.addEventListener('resize', sendHeight);
+    </script>
     """
-    components.html(html, height=DISPLAY_SIZE + 44, scrolling=False)
+    # 初期高さは大きめに確保しておき、JS が正確な値に上書きする
+    components.html(html, height=DISPLAY_SIZE + 100, scrolling=False)
 
 # ---- UI ----
 st.title("Self-Organizing Map")
