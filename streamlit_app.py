@@ -3,12 +3,12 @@ import numpy as np
 from PIL import Image as PILImage
 
 # ---- 定数 ----
-ROW, COL     = 10, 10
+ROW, COL     = 40, 40
 ALPHA        = 0.05
 NEIGHBOR     = 2
 DISPLAY_SIZE = 400
 
-# ---- セッション状態の初期化（ページ再実行をまたいで保持） ----
+# ---- セッション状態の初期化 ----
 if "weight" not in st.session_state:
     st.session_state.weight       = np.random.random([ROW, COL, 3])
     st.session_state.current_step = 0
@@ -33,58 +33,63 @@ def to_image(w):
 # ---- UI ----
 st.title("Self-Organizing Map")
 
-steps = st.select_slider(
-    "ステップ数",
-    options=[1, 10, 100, 1000, 10000, 100000],
-    value=1000,
-)
+# @st.fragment: フラグメント内だけ再描画されるのでページ全体が白くならない
+@st.fragment
+def som_ui():
+    steps = st.select_slider(
+        "ステップ数",
+        options=[1, 10, 100, 1000, 10000, 100000],
+        value=1000,
+    )
 
-col_run, col_reset = st.columns([1, 1])
-run   = col_run.button("▶ 学習実行",  type="primary",   use_container_width=True)
-reset = col_reset.button("↺ リセット", use_container_width=True)
+    col_run, col_reset = st.columns([1, 1])
+    run   = col_run.button("▶ 学習実行",  type="primary",   use_container_width=True)
+    reset = col_reset.button("↺ リセット", use_container_width=True)
 
-# ---- ボタン処理（画像表示より前に実行）----
-if reset:
-    st.session_state.weight       = np.random.random([ROW, COL, 3])
-    st.session_state.current_step = 0
-    st.session_state.last_color   = np.zeros(3)
+    # ---- ボタン処理（画像表示より前）----
+    if reset:
+        st.session_state.weight       = np.random.random([ROW, COL, 3])
+        st.session_state.current_step = 0
+        st.session_state.last_color   = np.zeros(3)
 
-if run:
-    progress = st.progress(0, text=f"{steps:,} ステップ学習中...")
-    w = st.session_state.weight
-    last_color = st.session_state.last_color
-    chunk = max(1, steps // 100)   # 100回に分けて進捗を更新
-    done  = 0
-    while done < steps:
-        batch = min(chunk, steps - done)
-        for _ in range(batch):
-            last_color = np.random.rand(3)
-            som_step(w, last_color)
-            st.session_state.current_step += 1
-        done += batch
-        progress.progress(done / steps)
-    st.session_state.last_color = last_color
-    progress.empty()   # 完了後にプログレスバーを消す
+    if run:
+        progress   = st.progress(0, text=f"{steps:,} ステップ学習中...")
+        w          = st.session_state.weight
+        last_color = st.session_state.last_color
+        chunk      = max(1, steps // 100)
+        done       = 0
+        while done < steps:
+            batch = min(chunk, steps - done)
+            for _ in range(batch):
+                last_color = np.random.rand(3)
+                som_step(w, last_color)
+                st.session_state.current_step += 1
+            done += batch
+            progress.progress(done / steps)
+        st.session_state.last_color = last_color
+        progress.empty()
 
-# ---- 状態表示（処理後の値を表示）----
-st.caption(f"累計ステップ: {st.session_state.current_step:,}")
+    # ---- 状態表示 ----
+    st.caption(f"累計ステップ: {st.session_state.current_step:,}")
 
-c = st.session_state.last_color
-r, g, b  = (int(v * 255) for v in c)
-hex_code = f"#{r:02x}{g:02x}{b:02x}"
-st.markdown(
-    f'最後の入力色: '
-    f'<span style="font-family:monospace">{hex_code} &nbsp; '
-    f'RGB({r:3d},{g:3d},{b:3d})</span> &nbsp;'
-    f'<span style="display:inline-block;width:20px;height:20px;'
-    f'background:{hex_code};border:1px solid #888;border-radius:3px;'
-    f'vertical-align:middle"></span>',
-    unsafe_allow_html=True,
-)
+    c = st.session_state.last_color
+    r, g, b  = (int(v * 255) for v in c)
+    hex_code = f"#{r:02x}{g:02x}{b:02x}"
+    st.markdown(
+        f'最後の入力色: '
+        f'<span style="font-family:monospace">{hex_code} &nbsp; '
+        f'RGB({r:3d},{g:3d},{b:3d})</span> &nbsp;'
+        f'<span style="display:inline-block;width:20px;height:20px;'
+        f'background:{hex_code};border:1px solid #888;border-radius:3px;'
+        f'vertical-align:middle"></span>',
+        unsafe_allow_html=True,
+    )
 
-# ---- SOM 画像表示（処理後に描画するためちらつかない）----
-st.image(
-    to_image(st.session_state.weight),
-    caption=f"Step: {st.session_state.current_step:,}",
-    use_container_width=True,
-)
+    # ---- 画像表示 ----
+    st.image(
+        to_image(st.session_state.weight),
+        caption=f"Step: {st.session_state.current_step:,}",
+        use_container_width=True,
+    )
+
+som_ui()
