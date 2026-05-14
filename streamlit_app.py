@@ -1,3 +1,5 @@
+import io
+import base64
 import streamlit as st
 import numpy as np
 from PIL import Image as PILImage
@@ -24,10 +26,18 @@ def som_step(weight, colorvec):
             if 0 <= ni < ROW and 0 <= nj < COL:
                 weight[ni, nj] += ALPHA * (colorvec - weight[ni, nj]) / (abs(i) + abs(j) + 1)
 
-def to_image(w):
+def to_image_html(w, step):
+    """PIL画像をbase64でHTMLに直接埋め込む（サーバー再取得なし→白フラッシュなし）"""
     arr = (np.clip(w, 0, 1) * 255).astype(np.uint8)
-    return PILImage.fromarray(arr, "RGB").resize(
-        (DISPLAY_SIZE, DISPLAY_SIZE), PILImage.NEAREST
+    pil = PILImage.fromarray(arr, "RGB").resize((DISPLAY_SIZE, DISPLAY_SIZE), PILImage.NEAREST)
+    buf = io.BytesIO()
+    pil.save(buf, format="PNG")
+    b64 = base64.b64encode(buf.getvalue()).decode()
+    return (
+        f'<img src="data:image/png;base64,{b64}" '
+        f'style="width:100%;display:block;image-rendering:pixelated">'
+        f'<p style="text-align:center;color:#888;font-size:0.85em;margin-top:4px">'
+        f'Step: {step:,}</p>'
     )
 
 # ---- UI ----
@@ -90,11 +100,10 @@ def som_ui():
         unsafe_allow_html=True,
     )
 
-    # ---- 画像表示 ----
-    st.image(
-        to_image(st.session_state.weight),
-        caption=f"Step: {st.session_state.current_step:,}",
-        use_container_width=True,
+    # ---- 画像表示（base64埋め込みで白フラッシュなし）----
+    st.markdown(
+        to_image_html(st.session_state.weight, st.session_state.current_step),
+        unsafe_allow_html=True,
     )
 
 som_ui()
