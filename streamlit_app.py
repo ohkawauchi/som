@@ -109,4 +109,12 @@ def som_ui():
         unsafe_allow_html=True,
     )
 
+        # markdown コンテナ内の p タグのデフォルトマージンをリセット
+    st.markdown("""
+    <style>
+    [data-testid="stMarkdownContainer"] p { margin: 0; }
+    [data-testid="stMarkdownContainer"] div { margin: 0; }
+    </style>
+    """, unsafe_allow_html=True)
+
 som_ui()
