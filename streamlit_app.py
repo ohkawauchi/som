@@ -6,7 +6,7 @@ import numpy as np
 from PIL import Image as PILImage
 
 # ---- 定数 ----
-ROW, COL     = 40, 40
+ROW, COL     = 10, 10
 ALPHA        = 0.05
 NEIGHBOR     = 2
 DISPLAY_SIZE = 400
