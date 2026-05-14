@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image as PILImage
 
 # ---- 定数 ----
-ROW, COL     = 40, 40
+ROW, COL     = 10, 10
 ALPHA        = 0.05
 NEIGHBOR     = 2
 DISPLAY_SIZE = 400
@@ -82,22 +82,20 @@ def som_ui():
 
     status_slot.caption(f"累計ステップ: {st.session_state.current_step:,}")
 
+    # ---- 色ラベル＋画像を1つの markdown にまとめて隙間をなくす ----
     c = st.session_state.last_color
     r, g, b  = (int(v * 255) for v in c)
     hex_code = f"#{r:02x}{g:02x}{b:02x}"
-    st.markdown(
+    color_html = (
         f'最後の入力色: '
         f'<span style="font-family:monospace">{hex_code} &nbsp; '
         f'RGB({r:3d},{g:3d},{b:3d})</span> &nbsp;'
         f'<span style="display:inline-block;width:20px;height:20px;'
         f'background:{hex_code};border:1px solid #888;border-radius:3px;'
-        f'vertical-align:middle"></span>',
-        unsafe_allow_html=True,
+        f'vertical-align:middle"></span>'
     )
-
-    # ---- 画像表示（base64埋め込みで白フラッシュなし）----
     st.markdown(
-        to_image_html(st.session_state.weight, st.session_state.current_step),
+        color_html + to_image_html(st.session_state.weight, st.session_state.current_step),
         unsafe_allow_html=True,
     )
 
