@@ -3,7 +3,7 @@ import numpy as np
 from PIL import Image as PILImage
 
 # ---- 定数 ----
-ROW, COL     = 40, 40
+ROW, COL     = 10, 10
 ALPHA        = 0.05
 NEIGHBOR     = 2
 DISPLAY_SIZE = 400
@@ -46,6 +46,11 @@ def som_ui():
     run   = col_run.button("▶ 学習実行",  type="primary",   use_container_width=True)
     reset = col_reset.button("↺ リセット", use_container_width=True)
 
+    # ---- 常に同じ高さのスロットを確保（がたつき防止）----
+    _SPACER = '<div style="height:1.4rem"></div>'
+    progress_slot = st.empty()
+    progress_slot.markdown(_SPACER, unsafe_allow_html=True)
+
     # ---- ボタン処理（画像表示より前）----
     if reset:
         st.session_state.weight       = np.random.random([ROW, COL, 3])
@@ -53,7 +58,6 @@ def som_ui():
         st.session_state.last_color   = np.zeros(3)
 
     if run:
-        progress   = st.progress(0, text=f"{steps:,} ステップ学習中...")
         w          = st.session_state.weight
         last_color = st.session_state.last_color
         chunk      = max(1, steps // 100)
@@ -65,9 +69,10 @@ def som_ui():
                 som_step(w, last_color)
                 st.session_state.current_step += 1
             done += batch
-            progress.progress(done / steps)
+            progress_slot.progress(done / steps,
+                                    text=f"{done:,} / {steps:,} ステップ")
         st.session_state.last_color = last_color
-        progress.empty()
+        progress_slot.markdown(_SPACER, unsafe_allow_html=True)  # スペーサーに戻す
 
     # ---- 状態表示 ----
     st.caption(f"累計ステップ: {st.session_state.current_step:,}")
